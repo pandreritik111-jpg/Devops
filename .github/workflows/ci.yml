@@ -2,8 +2,7 @@ name: CI-CD Pipeline
  
 on:
   push:
-    branches:
-      - main
+    branches: [ "main" ]
  
 jobs:
   build-and-deploy:
@@ -11,15 +10,15 @@ jobs:
  
     steps:
     - name: Checkout code
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
+ 
+    - name: Login to DockerHub
+      run: echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
  
     - name: Build Docker image
       run: docker build -t ${{ secrets.DOCKER_USERNAME }}/myapp:latest .
  
-    - name: Login to Docker Hub
-      run: echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
- 
-    - name: Push image
+    - name: Push Docker image
       run: docker push ${{ secrets.DOCKER_USERNAME }}/myapp:latest
  
     - name: Deploy to EC2
@@ -27,9 +26,10 @@ jobs:
       with:
         host: ${{ secrets.EC2_HOST }}
         username: ${{ secrets.EC2_USER }}
-        key: ${{ secrets.EC2_SSH_KEY }}
+        key: ${{ secrets.EC2_KEY }}
         script: |
           docker pull ${{ secrets.DOCKER_USERNAME }}/myapp:latest
           docker stop myapp || true
           docker rm myapp || true
           docker run -d -p 80:80 --name myapp ${{ secrets.DOCKER_USERNAME }}/myapp:latest
+ 
